@@ -61,29 +61,31 @@ proc mmapcopy(src, dst: FileHandle, startof, endof: int64) {.thread.} =
     discard msync(d, size, MS_SYNC)
 
 # Copy fille contents in parallel
-proc parallelCopy(source, destination: string): string =
+proc parallelCopy(source, destination: string) {.raises: [IOError].} =
   if fileExists(source) != true or symlinkExists(source) == true:
-    return source & " does not exist or is not a regular file"
+    raise newException(IOError, source & " does not exist or is not a regular file")
 
   var src: File
   try:
     src = open(source, fmRead)
   except:
-    return "failed to open source file: " & getCurrentExceptionMsg()
-  defer: src.close()
+    let e = getCurrentException()
+    raise newException(IOError, "failed to open source file", e)
   let srcSize = src.getFileSize()
 
   var dst: File
   try:
     dst = open(destination, fmReadWrite)
   except:
-    return "failed to open destination file: " & getCurrentExceptionMsg()
+    let e = getCurrentException()
+    raise newException(IOError, "failed to open destination file", e)
   defer: dst.close()
 
   try:
     discard ftruncate(dst.getFileHandle(), Off(srcSize))
   except:
-    return "failed to resize destination file: " & getCurrentExceptionMsg()
+    let e = getCurrentException()
+    raise newException(IOError, "failed to resize destination file", e)
 
   if srcSize == 0:
     return
@@ -151,9 +153,10 @@ proc main() =
       stderr.writeLine("not overwritten")
       quit(1)
 
-  let err = parallelCopy(source, destination)
-  if err != "":
-    stderr.writeLine(err)
+  try:
+    parallelCopy(source, destination)
+  except:
+    stderr.writeLine(getCurrentExceptionMsg())
     quit(1)
 
 main()

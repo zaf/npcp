@@ -13,14 +13,14 @@ var binary = toExe("npcp")
 hint("Conf", false)
 
 switch("threads", "on")
-switch("mm", "orc")
+switch("mm", "arc")
 switch("app", "console")
 switch("out", binary)
 
 task release, "Build release version":
   switch("define", "release")
-  switch("passC", "-flto")
-  switch("passL", "-flto")
+  switch("passC", "-flto=auto")
+  switch("passL", "-flto=auto")
   setCommand "c", source
 
 task debug, "Build debug version (default)":
