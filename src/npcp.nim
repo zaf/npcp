@@ -33,8 +33,8 @@ var
   files = newSeq[string]()
   binName = splitFile(getAppFilename()).name
 
-proc helpMsg() = 
-  stderr.writeLine("Usage ", binName , " [-f] source destination")
+proc helpMsg() =
+  stderr.writeLine("Usage ", binName, " [-f] source destination")
   quit(1)
 
 proc getpagesize(): cint {.importc, header: "<unistd.h>".}
@@ -45,7 +45,7 @@ proc align(size: int64): int64 =
   return (size div pageSize) * pageSize
 
 # Use mmap to copy file chunks
-proc mmapcopy(src, dst: FileHandle,  startof, endof: int64) {.thread.} =
+proc mmapcopy(src, dst: FileHandle, startof, endof: int64) {.thread.} =
   let size = int(endof-startof)
   var s = mmap(pointer(nil), size, PROT_READ, MAP_SHARED, src, Off(startof))
   defer: discard munmap(s, size)
@@ -56,7 +56,7 @@ proc mmapcopy(src, dst: FileHandle,  startof, endof: int64) {.thread.} =
 
   copyMem(d, s, endof-startof)
   if sync:
-    discard msync(d,size, MS_SYNC)
+    discard msync(d, size, MS_SYNC)
 
 # Copy file contents in parallel
 proc parallelCopy(source, destination: string): string =
