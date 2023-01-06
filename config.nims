@@ -1,3 +1,10 @@
+#[
+	Copyright (C) 2023, Lefteris Zafiris <zaf@fastmail.com>
+	This program is free software, distributed under the terms of
+	the GNU GPL v3 License. See the LICENSE file
+	at the top of the source tree.
+]#
+
 # npcp build config
 
 var source = "src/npcp.nim"

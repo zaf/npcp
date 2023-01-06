@@ -11,10 +11,10 @@ For more options:
 `npcp [-f] source destination`
 
 The number of parallel threads is by default the number of available CPU threads.
-To change this set the enviroment variable PCP_THREADS with the desired number of threads:
+To change this set the environment variable PCP_THREADS with the desired number of threads:
 
-`PCP_THREADS=4 npcp [source] [destination]`
+`PCP_THREADS=4 npcp source destination`
 
-To enable syncing of data on disk set the enviroment variable PCP_SYNC to true:
+To enable syncing of data on disk set the environment variable PCP_SYNC to true:
 
-`PCP_SYNC=true npcp [source] [destination]`
+`PCP_SYNC=true npcp source destination`
