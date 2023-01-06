@@ -132,10 +132,14 @@ if t != "":
   try:
     threads = parseInt(t)
   except:
-    stderr.writeLine("error setting thread number from PCP_THREADS var: ", getCurrentExceptionMsg())
+    stderr.writeLine("error setting threads number from PCP_THREADS var: ", getCurrentExceptionMsg())
 
 if threads < 1:
   threads = countProcessors()
+
+if threads > MaxThreadPoolSize:
+  stderr.writeLine("warning: threads number can't be bigger than ", $MaxThreadPoolSize)
+  threads = MaxThreadPoolSize
 
 if force != true and fileExists(destination):
   echo "File ", destination, " already exists, overwrite? (y/N)"
