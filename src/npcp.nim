@@ -25,15 +25,16 @@ import std/bitops
 import posix
 
 var
-  sync = false                               # Sync file to disk after done copying data.
-  force = false                              # Force overwritting of existing file.
-  threads = 0                                # Number of threads copying data.
-  files = newSeq[string]()                   # Source and destination files.
-  binName = splitFile(getAppFilename()).name # Command name.
+  sync = false             # Sync file to disk after done copying data.
+  force = false            # Force overwritting of existing file.
+  threads = 0              # Number of threads copying data.
+  files = newSeq[string]() # Source and destination files.
 
 proc helpMsg() =
   ## Print a help message
-  stderr.writeLine("Usage ", binName, " [-f] source destination")
+  let binName = splitFile(getAppFilename()).name
+  stderr.writeLine("Parallel file copy")
+  stderr.writeLine("Usage: ", binName, " [-f] source destination")
   quit(1)
 
 # Get OS page size
