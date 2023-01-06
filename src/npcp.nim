@@ -5,18 +5,16 @@
 	at the top of the source tree.
 ]#
 
-#[
-	Parallel file copy.
-
-	Usage: npcp [-f] source destination
-
-	The number of parallel threads is by default the number of available CPU threads.
-	To change this set the environment variable PCP_THREADS with the desired number of threads:
-	PCP_THREADS=4 npcp source destination
-
-	To enable syncing of data on disk set the environment variable PCP_SYNC to true:
-	PCP_SYNC=true npcp source destination
-]#
+##  Parallel file copy.
+##
+##	Usage: npcp [-f] source destination
+##
+##	The number of parallel threads is by default the number of available CPU threads.
+##	To change this set the environment variable PCP_THREADS with the desired number of threads:
+##	PCP_THREADS=4 npcp source destination
+##
+##	To enable syncing of data on disk set the environment variable PCP_SYNC to true:
+##	PCP_SYNC=true npcp source destination
 
 import std/os
 import std/cpuinfo
@@ -33,21 +31,21 @@ var
   files = newSeq[string]()                   # Source and destination files.
   binName = splitFile(getAppFilename()).name # Command name.
 
-# Print help message
 proc helpMsg() =
+  ## Print a help message
   stderr.writeLine("Usage ", binName, " [-f] source destination")
   quit(1)
 
 # Get OS page size
 proc getpagesize(): cint {.importc, header: "<unistd.h>".}
 
-# Align to OS page boundaries
 proc align(size: int64): int64 =
+  ## Align to OS page boundaries
   let pageSize = int64(getpagesize())
   return (size div pageSize) * pageSize
 
-# Use mmap to copy file chunks
 proc mmapcopy(src, dst: FileHandle, startof, endof: int64) {.thread.} =
+  ## Use mmap to copy file chunks
   let size = int(endof-startof)
   var s = mmap(pointer(nil), size, PROT_READ, MAP_SHARED, src, Off(startof))
   defer: discard munmap(s, size)
@@ -60,8 +58,8 @@ proc mmapcopy(src, dst: FileHandle, startof, endof: int64) {.thread.} =
   if sync:
     discard msync(d, size, MS_SYNC)
 
-# Copy fille contents in parallel
 proc parallelCopy(source, destination: string) {.raises: [IOError].} =
+  ## Copy fille contents in parallel
   if fileExists(source) != true or symlinkExists(source) == true:
     raise newException(IOError, source & " does not exist or is not a regular file")
 

@@ -15,12 +15,12 @@ hint("Conf", false)
 switch("threads", "on")
 switch("mm", "arc")
 switch("app", "console")
-switch("out", binary)
 
 task release, "Build release version":
   switch("define", "release")
   switch("passC", "-flto=auto")
   switch("passL", "-flto=auto")
+  switch("out", binary)
   setCommand "c", source
 
 task debug, "Build debug version (default)":
@@ -28,6 +28,7 @@ task debug, "Build debug version (default)":
   switch("checks", "on")
   switch("debugger", "native")
   switch("linetrace", "on")
+  switch("out", binary)
   setCommand "c", source
 
 task build, "Build binary":
