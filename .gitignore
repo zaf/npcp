@@ -1,0 +1,9 @@
+nimcache/
+nimblecache/
+htmldocs/
+
+npcp.dSYM/
+
+npcp
+nimble.develop
+nimble.paths
