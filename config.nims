@@ -21,15 +21,13 @@ task release, "Build release version":
   switch("passC", "-flto=auto")
   switch("passL", "-flto=auto")
   switch("out", binary)
-  setCommand "c", source
+  setCommand "compile", source
 
 task debug, "Build debug version (default)":
   switch("define", "debug")
-  switch("checks", "on")
   switch("debugger", "native")
-  switch("linetrace", "on")
   switch("out", binary)
-  setCommand "c", source
+  setCommand "compile", source
 
 task build, "Build binary":
   debugTask()
