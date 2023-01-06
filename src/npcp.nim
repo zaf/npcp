@@ -141,7 +141,7 @@ proc main() =
   let source = files[0]
   let destination = files[1]
   if source == destination:
-    stderr.writeLine(source, " and ",  destination, " are the same file")
+    stderr.writeLine(source, " and ", destination, " are the same file")
     quit(1)
 
   if toLowerAscii(getEnv("PCP_SYNC")) == "true":
