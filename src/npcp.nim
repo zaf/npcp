@@ -86,6 +86,7 @@ proc parallelCopy(source, destination: string) {.raises: [IOError, ResourceExhau
   except:
     let e = getCurrentException()
     raise newException(IOError, "failed to open source file", e)
+  defer: src.close()
   let srcSize = src.getFileSize()
 
   var dst: File
