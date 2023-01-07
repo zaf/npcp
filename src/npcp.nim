@@ -9,7 +9,7 @@
 ##
 ##	Usage: npcp [-f] source destination
 ##
-##	The number of parallel threads is by default the number of available CPU threads.
+##	The number of parallel jobs is by default the number of available CPU threads.
 ##	To change this set the environment variable PCP_THREADS with the desired number of threads:
 ##	PCP_THREADS=4 npcp source destination
 ##
@@ -20,14 +20,15 @@ import std/os
 import std/cpuinfo
 import std/parseopt
 import std/strutils
-import std/threadpool
 import std/bitops
 import posix
+
+type chunkData = tuple[src, dst: FileHandle, startOff, endOff: int64]
 
 var
   sync = false             # Sync file to disk after done copying data.
   force = false            # Force overwritting of existing file.
-  threads = 0              # Number of threads copying data.
+  jobs = 0                 # Number of parallel jobs copying data.
   files = newSeq[string]() # Source and destination files.
 
 let
@@ -45,10 +46,10 @@ proc pageAlign(size: int64): int64 =
   ## Align to OS page boundaries
   return (size div pageSize) * pageSize
 
-proc mmapcopy(src, dst: FileHandle, startof, endof: int64) {.thread, raises: [IOError].} =
+proc mmapcopy(data: chunkData) {.thread, raises: [IOError].} =
   ## Use mmap to copy file chunks
-  let size = int(endof-startof)
-  var s = mmap(pointer(nil), size, PROT_READ, MAP_SHARED, src, Off(startof))
+  let size = int(data.endOff-data.startOff)
+  var s = mmap(pointer(nil), size, PROT_READ, MAP_SHARED, data.src, Off(data.startOff))
   if s == MAP_FAILED:
     raise newException(IOError, "failed to memory map source file")
 
@@ -56,11 +57,11 @@ proc mmapcopy(src, dst: FileHandle, startof, endof: int64) {.thread, raises: [IO
   if madviseResult != 0:
     stderr.writeLine("warning: madvise() failed")
 
-  var d = mmap(pointer(nil), size, bitor(PROT_READ, PROT_WRITE), MAP_SHARED, dst, Off(startof))
+  var d = mmap(pointer(nil), size, bitor(PROT_READ, PROT_WRITE), MAP_SHARED, data.dst, Off(data.startOff))
   if d == MAP_FAILED:
     raise newException(IOError, "failed to memory map destination file")
 
-  copyMem(d, s, endof-startof)
+  copyMem(d, s, size)
   if sync:
     let msyncResult = msync(d, size, MS_SYNC)
     if msyncResult != 0:
@@ -74,7 +75,7 @@ proc mmapcopy(src, dst: FileHandle, startof, endof: int64) {.thread, raises: [IO
   if munpapDestResult != 0:
     raise newException(IOError, "failed to unmap destination file")
 
-proc parallelCopy(source, destination: string) {.raises: [IOError].} =
+proc parallelCopy(source, destination: string) {.raises: [IOError, ResourceExhaustedError].} =
   ## Copy fille contents in parallel
   if fileExists(source) != true or symlinkExists(source) == true:
     raise newException(IOError, source & " does not exist or is not a regular file")
@@ -104,21 +105,22 @@ proc parallelCopy(source, destination: string) {.raises: [IOError].} =
 
   # Don't run parallel jobs for small files
   if srcSize < minSize:
-    threads = 1
+    jobs = 1
 
-  let chunk = pageAlign(srcSize div int64(threads))
+  let chunk = pageAlign(srcSize div int64(jobs))
   var startOffset, endOffset: int64
   endOffset = chunk
-  setMaxPoolSize(threads)
 
-  for i in 1..threads:
-    if i == threads:
+  var threads = newSeq[Thread[chunkData]](jobs)
+
+  for i in 0..<threads.len:
+    if i == threads.len-1:
       endOffset = srcSize
-    spawn mmapcopy(src.getFileHandle(), dst.getOsFileHandle(), startOffset, endOffset)
+    createThread(threads[i], mmapcopy, (src.getFileHandle(), dst.getOsFileHandle(), startOffset, endOffset))
     startOffset += chunk
     endOffset += chunk
 
-  threadpool.sync()
+  joinThreads(threads)
   return
 
 # main()
@@ -150,16 +152,12 @@ proc main() =
   let t = getEnv("PCP_THREADS")
   if t != "":
     try:
-      threads = parseInt(t)
+      jobs = parseInt(t)
     except:
       stderr.writeLine("error setting threads number from PCP_THREADS var: ", getCurrentExceptionMsg())
 
-  if threads < 1:
-    threads = countProcessors()
-
-  if threads > MaxThreadPoolSize:
-    stderr.writeLine("warning: threads number can't be bigger than ", $MaxThreadPoolSize)
-    threads = MaxThreadPoolSize
+  if jobs < 1:
+    jobs = countProcessors()
 
   if force != true and fileExists(destination):
     stderr.write("File ", destination, " already exists, overwrite? (y/N) ")
