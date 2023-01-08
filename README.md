@@ -21,9 +21,9 @@ to copy data simultaneously. This number is by default the number of available C
 ----
 
 ### Installation:
-To build:
+To build run:
 
-    `nim build`
+    `nim release`
 
 For more options:
 

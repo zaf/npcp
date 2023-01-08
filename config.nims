@@ -8,6 +8,7 @@
 # npcp build config
 
 var source = "src/npcp.nim"
+var formatting = @["src/npcp.nim", "config.nims"]
 var binary = toExe("npcp")
 
 hint("Conf", false)
@@ -20,6 +21,7 @@ task release, "Build release version":
   switch("define", "release")
   switch("passC", "-flto=auto")
   switch("passL", "-flto=auto")
+  switch("passL", "-s")
   switch("out", binary)
   setCommand "compile", source
 
@@ -33,11 +35,12 @@ task build, "Build binary":
   debugTask()
 
 task pretty, "Run nimpretty":
-  if fileExists(source):
-    let np = findExe("nimpretty")
-    if np != "":
-      echo "Formatting " & source
-      exec(np & " --maxLineLen=160 " & source)
+  let np = findExe("nimpretty")
+  if np != "":
+    for file in formatting:
+      if fileExists(file):
+        echo "Formatting " & file
+        exec(np & " --maxLineLen=160 " & file)
 
 task clean, "Remove compiled binaries":
   if fileExists(binary):

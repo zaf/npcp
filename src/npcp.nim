@@ -5,18 +5,12 @@
 	at the top of the source tree.
 ]#
 
+##
 ##  Parallel file copy.
 ##
-##	Usage: npcp [options] source destination
-##
-##  Options:
-##  -f, --force:
-##    Overwrite destination file if it exists.
-##  -s, --sync:
-##    Sync file to disk after done copying data.
-##  -t=[threads], --threads=[threads]:
-##    Specifies the number of threads used to copy data simultaneously.
-##    This number is by default the number of available CPU threads.
+## The npcp utility copies the contents of the source file to the destination file.
+## It maps the contets of the files in memory and copies data in parallel using
+## a number of threads that by default is the number of available CPU threads.
 ##
 
 import std/os
@@ -25,6 +19,20 @@ import std/parseopt
 import std/strutils
 import std/bitops
 import posix
+
+var helpMsg = """
+
+Options:
+  -f, --force:
+    Overwrite destination file if it exists.
+
+  -s, --sync:
+    Sync file to disk after done copying data.
+
+  -t=[threads], --threads=[threads]:
+    Specifies the number of threads used to copy data simultaneously.
+    This number is by default the number of available CPU threads."""
+
 
 type chunkData = tuple[src, dst: FileHandle, startOff, endOff: int64]
 
@@ -38,11 +46,13 @@ let
   pageSize = int64(sysconf(SC_PAGESIZE)) # OS memory page size.
   minSize = 256 * pageSize               # File size limit.
 
-proc helpMsg() =
+proc printHelpMsg(full: bool) =
   ## Print a help message
   let binName = splitFile(getAppFilename()).name
   stderr.writeLine("Parallel file copy")
-  stderr.writeLine("Usage: ", binName, " [-f] source destination")
+  stderr.writeLine("Usage: ", binName, " [options] source destination")
+  if full:
+    stderr.writeLine(helpMsg)
   quit(1)
 
 proc pageAlign(size: int64): int64 =
@@ -141,11 +151,11 @@ proc main() =
       of "force", "f": force = true
       of "sync", "s": sync = true
       of "threads", "t": jobsVal = val
-      of "help", "h": helpMsg()
-    of cmdEnd: assert(false)
+      of "help", "h": printHelpMsg(full = true)
+    of cmdEnd: printHelpMsg(full = true)
 
   if files.len != 2:
-    helpMsg()
+    printHelpMsg(full = false)
 
   let source = files[0]
   let destination = files[1]
