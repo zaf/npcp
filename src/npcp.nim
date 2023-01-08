@@ -7,14 +7,17 @@
 
 ##  Parallel file copy.
 ##
-##	Usage: npcp [-f] source destination
+##	Usage: npcp [options] source destination
 ##
-##	The number of parallel jobs is by default the number of available CPU threads.
-##	To change this set the environment variable PCP_THREADS with the desired number of threads:
-##	PCP_THREADS=4 npcp source destination
+##  Options:
+##  -f, --force:
+##    Overwrite destination file if it exists.
+##  -s, --sync:
+##    Sync file to disk after done copying data.
+##  -t=[threads], --threads=[threads]:
+##    Specifies the number of threads used to copy data simultaneously.
+##    This number is by default the number of available CPU threads.
 ##
-##	To enable syncing of data on disk set the environment variable PCP_SYNC to true:
-##	PCP_SYNC=true npcp source destination
 
 import std/os
 import std/cpuinfo
@@ -28,7 +31,7 @@ type chunkData = tuple[src, dst: FileHandle, startOff, endOff: int64]
 var
   sync = false             # Sync file to disk after done copying data.
   force = false            # Force overwritting of existing file.
-  jobs = 0                 # Number of parallel jobs copying data.
+  jobs = 0                 # Number of parallel threads copying data.
   files = newSeq[string]() # Source and destination files.
 
 let
@@ -49,7 +52,7 @@ proc pageAlign(size: int64): int64 =
 proc mmapcopy(data: chunkData) {.thread, raises: [IOError].} =
   ## Use mmap to copy file chunks
   let size = int(data.endOff-data.startOff)
-  var s = mmap(pointer(nil), size, PROT_READ, MAP_SHARED, data.src, Off(data.startOff))
+  let s = mmap(pointer(nil), size, PROT_READ, MAP_SHARED, data.src, Off(data.startOff))
   if s == MAP_FAILED:
     raise newException(IOError, "failed to memory map source file")
 
@@ -57,7 +60,7 @@ proc mmapcopy(data: chunkData) {.thread, raises: [IOError].} =
   if madviseResult != 0:
     stderr.writeLine("warning: madvise() failed")
 
-  var d = mmap(pointer(nil), size, bitor(PROT_READ, PROT_WRITE), MAP_SHARED, data.dst, Off(data.startOff))
+  let d = mmap(pointer(nil), size, bitor(PROT_READ, PROT_WRITE), MAP_SHARED, data.dst, Off(data.startOff))
   if d == MAP_FAILED:
     raise newException(IOError, "failed to memory map destination file")
 
@@ -127,6 +130,7 @@ proc parallelCopy(source, destination: string) {.raises: [IOError, ResourceExhau
 # main()
 proc main() =
   # Parse flags
+  var jobsVal: string
   var p = initOptParser()
   for kind, key, val in p.getopt():
     case kind
@@ -135,6 +139,8 @@ proc main() =
     of cmdLongOption, cmdShortOption:
       case key
       of "force", "f": force = true
+      of "sync", "s": sync = true
+      of "threads", "t": jobsVal = val
       of "help", "h": helpMsg()
     of cmdEnd: assert(false)
 
@@ -147,15 +153,11 @@ proc main() =
     stderr.writeLine(source, " and ", destination, " are the same file")
     quit(1)
 
-  if toLowerAscii(getEnv("PCP_SYNC")) == "true":
-    sync = true
-
-  let t = getEnv("PCP_THREADS")
-  if t != "":
+  if jobsVal != "":
     try:
-      jobs = parseInt(t)
+      jobs = parseInt(jobsVal)
     except:
-      stderr.writeLine("error setting threads number from PCP_THREADS var: ", getCurrentExceptionMsg())
+      stderr.writeLine("error setting number of threads: ", getCurrentExceptionMsg())
 
   if jobs < 1:
     jobs = countProcessors()
