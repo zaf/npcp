@@ -20,7 +20,7 @@ import std/strutils
 import std/bitops
 import posix
 
-var helpMsg = """
+let helpMsg = """
 
 Options:
   -f, --force:
@@ -127,8 +127,8 @@ proc parallelCopy(source, destination: string) {.raises: [IOError, ResourceExhau
 
   var threads = newSeq[Thread[chunkData]](jobs)
 
-  for i in 0..<threads.len:
-    if i == threads.len-1:
+  for i in 0..threads.high:
+    if i == threads.high:
       endOffset = srcSize
     createThread(threads[i], mmapcopy, (src.getFileHandle(), dst.getOsFileHandle(), startOffset, endOffset))
     startOffset += chunk
