@@ -31,6 +31,12 @@ task debug, "Build debug version (default)":
   switch("out", binary)
   setCommand "compile", source
 
+task profile, "Build profiling version":
+  switch("profiler", "on")
+  switch("stackTrace", "on")
+  switch("out", binary)
+  setCommand "compile", source
+
 task build, "Build binary":
   debugTask()
 

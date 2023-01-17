@@ -13,6 +13,9 @@
 ## a number of threads that by default is the number of available CPU threads.
 ##
 
+when compileOption("profiler"):
+  import nimprof
+
 import std/os
 import std/cpuinfo
 import std/parseopt
