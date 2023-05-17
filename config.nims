@@ -19,9 +19,8 @@ switch("app", "console")
 
 task release, "Build release version":
   switch("define", "release")
-  switch("passC", "-flto=auto")
-  switch("passL", "-flto=auto")
-  switch("passL", "-s")
+  switch("passC", "-flto=auto -pie -fPIE")
+  switch("passL", "-s -flto=auto -fpie -fPIE")
   switch("out", binary)
   setCommand "compile", source
 

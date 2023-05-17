@@ -99,7 +99,7 @@ proc parallelCopy(source, destination: string) {.raises: [IOError, ResourceExhau
   var src: File
   try:
     src = open(source, fmRead)
-  except:
+  except CatchableError:
     let e = getCurrentException()
     raise newException(IOError, "failed to open source file", e)
   defer: src.close()
@@ -108,7 +108,7 @@ proc parallelCopy(source, destination: string) {.raises: [IOError, ResourceExhau
   var dst: File
   try:
     dst = open(destination, fmReadWrite)
-  except:
+  except CatchableError:
     let e = getCurrentException()
     raise newException(IOError, "failed to open destination file", e)
   defer: dst.close()
@@ -169,7 +169,7 @@ proc main() =
   if jobsVal != "":
     try:
       jobs = parseInt(jobsVal)
-    except:
+    except CatchableError:
       stderr.writeLine("error setting number of threads: ", getCurrentExceptionMsg())
 
   if jobs < 1:
@@ -184,7 +184,7 @@ proc main() =
 
   try:
     parallelCopy(source, destination)
-  except:
+  except CatchableError:
     stderr.writeLine(getCurrentExceptionMsg())
     quit(1)
 
